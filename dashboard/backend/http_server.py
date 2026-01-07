@@ -1,157 +1,184 @@
-# from flask import Flask, Response, send_from_directory, jsonify, request, send_file
-# import cv2
-# import time
-# import os, json
-# APP_HOST = "0.0.0.0"
-# APP_PORT = 8001
-
-# # Set ini sesuai kamera kamu (USB cam biasanya 0)
-# CAM_INDEX = 0
-# JPEG_QUALITY = 80
-# FPS_LIMIT = 15
-
-# app = Flask(__name__, static_folder="../frontend", static_url_path="")
-
-# cap = None
-
-# def get_cap():
-#     global cap
-#     if cap is None or not cap.isOpened():
-#         cap = cv2.VideoCapture(CAM_INDEX)
-#         # optional tuning:
-#         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-#         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-#         cap.set(cv2.CAP_PROP_FPS, FPS_LIMIT)
-#     return cap
-
-# def mjpeg_generator():
-#     period = 1.0 / max(1e-6, FPS_LIMIT)
-#     next_t = time.time()
-
-#     while True:
-#         c = get_cap()
-#         ok, frame = c.read()
-#         if not ok:
-#             # camera glitch, retry
-#             time.sleep(0.2)
-#             continue
-
-#         ok, jpg = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), JPEG_QUALITY])
-#         if not ok:
-#             continue
-
-#         yield (b"--frame\r\n"
-#                b"Content-Type: image/jpeg\r\n\r\n" + jpg.tobytes() + b"\r\n")
-
-#         next_t += period
-#         sleep_s = next_t - time.time()
-#         if sleep_s > 0:
-#             time.sleep(sleep_s)
-#         else:
-#             next_t = time.time()
-
-# @app.get("/")
-# def index():
-#     return send_from_directory(app.static_folder, "index.html")
-
-# @app.get("/<path:path>")
-# def static_files(path):
-#     return send_from_directory(app.static_folder, path)
-
-# @app.get("/stream.mjpg")
-# def stream():
-#     return Response(mjpeg_generator(),
-#                     mimetype="multipart/x-mixed-replace; boundary=frame")
-
-# @app.get("/api/calib/crosshair")
-# def get_crosshair():
-#     if not os.path.exists("calibration/crosshair.json"):
-#         return jsonify({
-#             "rx0": 0.0,
-#             "ry0": 0.0,
-#             "sx": 260.0,
-#             "sy": 240.0,
-#             "invert_y": True
-#         })
-#     return send_file("calibration/crosshair.json")
-
-# @app.post("/api/calib/crosshair")
-# def save_crosshair():
-#     os.makedirs("calibration", exist_ok=True)
-#     data = request.json
-#     with open("calibration/crosshair.json", "w") as f:
-#         json.dump(data, f, indent=2)
-#     return {"ok": True}
-
-# fetch("/api/calib/crosshair")
-#   .then(r => r.json())
-#   .then(cfg => CrosshairHUD.init(cfg));
-
-# fetch("/api/calib/crosshair", {
-#   method: "POST",
-#   headers: {"Content-Type":"application/json"},
-#   body: JSON.stringify(cfg)
-# });
-
-# if __name__ == "__main__":
-#     app.run(host=APP_HOST, port=APP_PORT, threaded=True)
-
 from flask import Flask, Response, send_from_directory, jsonify, request
-import cv2
 import time
 import os
 import json
 
+# =============================
+# CONFIG
+# =============================
 APP_HOST = "0.0.0.0"
 APP_PORT = 8001
 
-# Set ini sesuai kamera kamu (USB cam biasanya 0)
-CAM_INDEX = 0
+# Stream settings
 JPEG_QUALITY = 80
 FPS_LIMIT = 15
 
-# Folder calibration disimpan relatif ke file ini
+# Resolution for Pi AI Camera
+FRAME_W = 1280
+FRAME_H = 720
+
+# If you still want USB cam fallback
+CAM_INDEX = 0
+
+# =============================
+# PATHS
+# =============================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CALIB_DIR = os.path.join(BASE_DIR, "calibration")
 CROSSHAIR_PATH = os.path.join(CALIB_DIR, "crosshair.json")
 
-# Static frontend (sesuaikan path)
-# Struktur yang aman:
-# project/
-#   backend/camera_server.py
-#   frontend/index.html, app.js, styles.css
+# Static frontend (relative to this backend file)
 FRONTEND_DIR = os.path.join(BASE_DIR, "..", "frontend")
 
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
 
-cap = None
+# =============================
+# CAMERA BACKENDS
+# =============================
 
-def get_cap():
-    global cap
-    if cap is None or not cap.isOpened():
+# We'll use OpenCV only for JPEG encoding + color conversion
+import cv2
+
+# Preferred: Picamera2 for Raspberry Pi AI Camera / CSI camera
+_picam2 = None
+_cap = None  # OpenCV VideoCapture fallback
+_backend = None  # "picamera2" or "opencv"
+
+
+def _init_picamera2():
+    """Initialize Raspberry Pi camera using Picamera2."""
+    global _picam2, _backend
+
+    try:
+        from picamera2 import Picamera2
+    except Exception as e:
+        return False, f"picamera2 import failed: {e}"
+
+    try:
+        picam2 = Picamera2()
+
+        # create_video_configuration is good for streaming
+        # format RGB888 gives easy numpy array for OpenCV
+        config = picam2.create_video_configuration(
+            main={"size": (FRAME_W, FRAME_H), "format": "RGB888"}
+        )
+        picam2.configure(config)
+        picam2.start()
+
+        # Small warmup
+        time.sleep(0.2)
+
+        _picam2 = picam2
+        _backend = "picamera2"
+        return True, "picamera2 OK"
+    except Exception as e:
+        _picam2 = None
+        return False, f"picamera2 init failed: {e}"
+
+
+def _init_opencv_v4l2():
+    """Fallback init for USB webcam or /dev/video0."""
+    global _cap, _backend
+    try:
         cap = cv2.VideoCapture(CAM_INDEX)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_W)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_H)
         cap.set(cv2.CAP_PROP_FPS, FPS_LIMIT)
-    return cap
+        if not cap.isOpened():
+            return False, "OpenCV VideoCapture cannot open camera index"
+        _cap = cap
+        _backend = "opencv"
+        return True, "opencv OK"
+    except Exception as e:
+        _cap = None
+        return False, f"opencv init failed: {e}"
+
+
+def ensure_camera():
+    """
+    Ensure one camera backend is active.
+    Priority: picamera2 -> opencv fallback
+    """
+    global _backend
+
+    # if already initialized and looks alive, keep it
+    if _backend == "picamera2" and _picam2 is not None:
+        return True
+    if _backend == "opencv" and _cap is not None and _cap.isOpened():
+        return True
+
+    # try picamera2 first
+    ok, msg = _init_picamera2()
+    if ok:
+        print("[CAM] Using Picamera2 (CSI / AI camera).")
+        return True
+    else:
+        print("[CAM] Picamera2 not available:", msg)
+
+    # fallback to OpenCV
+    ok, msg = _init_opencv_v4l2()
+    if ok:
+        print("[CAM] Using OpenCV VideoCapture (USB / V4L2).")
+        return True
+    else:
+        print("[CAM] OpenCV camera not available:", msg)
+
+    return False
+
+
+def read_frame_rgb():
+    """
+    Returns frame as RGB (H,W,3) uint8, or None if failed.
+    """
+    if not ensure_camera():
+        return None
+
+    if _backend == "picamera2":
+        try:
+            frame = _picam2.capture_array()  # RGB888 -> numpy array
+            return frame
+        except Exception as e:
+            print("[CAM] picamera2 capture failed:", e)
+            return None
+
+    # opencv backend
+    try:
+        ok, frame_bgr = _cap.read()
+        if not ok or frame_bgr is None:
+            return None
+        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        return frame_rgb
+    except Exception as e:
+        print("[CAM] opencv capture failed:", e)
+        return None
+
 
 def mjpeg_generator():
     period = 1.0 / max(1e-6, FPS_LIMIT)
     next_t = time.time()
 
     while True:
-        c = get_cap()
-        ok, frame = c.read()
-        if not ok:
+        frame_rgb = read_frame_rgb()
+        if frame_rgb is None:
+            # camera glitch / not ready
             time.sleep(0.2)
             continue
 
-        ok, jpg = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), JPEG_QUALITY])
+        # Convert to BGR for OpenCV encode to avoid weird colors
+        frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+
+        ok, jpg = cv2.imencode(
+            ".jpg",
+            frame_bgr,
+            [int(cv2.IMWRITE_JPEG_QUALITY), int(JPEG_QUALITY)],
+        )
         if not ok:
             continue
 
-        yield (b"--frame\r\n"
-               b"Content-Type: image/jpeg\r\n\r\n" + jpg.tobytes() + b"\r\n")
+        yield (
+            b"--frame\r\n"
+            b"Content-Type: image/jpeg\r\n\r\n" + jpg.tobytes() + b"\r\n"
+        )
 
         next_t += period
         sleep_s = next_t - time.time()
@@ -160,22 +187,33 @@ def mjpeg_generator():
         else:
             next_t = time.time()
 
+
+# =============================
+# ROUTES: FRONTEND + STREAM
+# =============================
 @app.get("/")
 def index():
     return send_from_directory(app.static_folder, "index.html")
+
 
 @app.get("/<path:path>")
 def static_files(path):
     return send_from_directory(app.static_folder, path)
 
+
 @app.get("/stream.mjpg")
 def stream():
-    return Response(mjpeg_generator(),
-                    mimetype="multipart/x-mixed-replace; boundary=frame")
+    return Response(
+        mjpeg_generator(),
+        mimetype="multipart/x-mixed-replace; boundary=frame"
+    )
 
+
+# =============================
+# ROUTES: CALIBRATION API
+# =============================
 @app.get("/api/calib/crosshair")
 def get_crosshair():
-    # default config
     default_cfg = {
         "rx0": 0.0,
         "ry0": 0.0,
@@ -190,11 +228,12 @@ def get_crosshair():
     try:
         with open(CROSSHAIR_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
-        # merge with defaults for safety
-        default_cfg.update(data if isinstance(data, dict) else {})
+        if isinstance(data, dict):
+            default_cfg.update(data)
         return jsonify(default_cfg)
     except Exception:
         return jsonify(default_cfg)
+
 
 @app.post("/api/calib/crosshair")
 def save_crosshair():
@@ -204,11 +243,9 @@ def save_crosshair():
     if not isinstance(data, dict):
         return jsonify({"ok": False, "err": "invalid json"}), 400
 
-    # sanitize keys (only allow expected)
     allowed = {"rx0", "ry0", "sx", "sy", "invert_y"}
     clean = {k: data[k] for k in data.keys() if k in allowed}
 
-    # type normalize (best effort)
     def to_float(v, default=0.0):
         try:
             return float(v)
@@ -228,5 +265,11 @@ def save_crosshair():
 
     return jsonify({"ok": True, "path": "calibration/crosshair.json", "cfg": cfg})
 
+
+# =============================
+# ENTRY
+# =============================
 if __name__ == "__main__":
+    # Try init camera early so error terlihat jelas
+    ensure_camera()
     app.run(host=APP_HOST, port=APP_PORT, threaded=True)
