@@ -1,0 +1,186 @@
+<!-- index.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UG-243 Dashboard</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="row">
+      <h1>UG-243 Control & Telemetry Dashboard</h1>
+      <div class="pill" id="conn">DISCONNECTED</div>
+    </header>
+
+    <div class="main-grid">
+      <!-- Controller Visualization -->
+      <div class="controller-panel">
+        <h2 class="panel-title">PS4 Controller (from IN/TX)</h2>
+
+        <!-- Your SVG (unchanged shapes/classes) -->
+        <svg class="controller-svg" viewBox="0 0 600 400" id="controller">
+          <!-- Controller Base -->
+          <g fill="#cccccc">
+            <path d="M 98.961241,39.661931 C 119.06114,28.566101 142.70298,26.469828 166.53156,35.976277 l 0,15.425142 -67.570319,0 z" stroke="#000" stroke-width="1.2"/>
+            <path d="M 501.03874,39.661931 C 480.93885,28.566101 457.297,26.469828 433.46843,35.976277 l 0,15.425142 67.57031,0 z" stroke="#000" stroke-width="1.2"/>
+            <path d="m 135.17536,37.68543 c -15.55539,-0.0442 -30.76705,2.95454 -41.972089,9.1254 -6.638555,13.43858 -24.067983,31.41091 -31.27004,60.35428 -25.705779,85.95043 -32.81272,158.57024 -36.322456,202.14445 0,33.54855 27.187916,60.74846 60.736498,60.74846 27.103537,0 48.894897,-15.7845 57.404057,-43.32181 l 24.85598,-71.37881 c 3.69721,-5.8797 12.74174,-8.2975 18.4897,-8.93431 l 225.80599,0 c 5.74795,0.63681 14.79248,3.05461 18.4897,8.93431 l 24.85597,71.37881 c 8.50916,27.53731 30.30051,43.32181 57.40405,43.32181 33.54861,0 60.7365,-27.19991 60.7365,-60.74846 -3.50973,-43.57421 -10.61665,-116.19402 -36.32245,-202.14445 -7.20206,-28.94337 -24.63149,-46.9157 -31.27004,-60.35428 -11.20504,-6.17086 -26.4167,-9.16956 -41.97209,-9.1254 -15.55535,0.0442 -31.46204,3.13115 -44.03843,9.1254 l -241.57241,0 c -12.5764,-5.99425 -28.4831,-9.08125 -44.03844,-9.1254 z" stroke="#000" stroke-width="1.2"/>
+          </g>
+
+          <!-- Touchpad -->
+          <g fill="#cccccc">
+            <path class="touchpad" d="m 217.49511,45.22225 c -1.96668,0 -7.44127,0.44578 -7.44127,5.2913 l 0,16.28001 0,66.52461 c 0,6.16423 7.0794,11.60271 13.24363,11.60271 l 157.05511,0 c 6.16423,0 11.55243,-5.29713 11.55243,-11.46136 l 0,-66.66596 0,-16.28001 c 0,-4.84552 -5.47458,-5.2913 -7.44126,-5.2913 l -17.19972,0 -132.56921,0 z" stroke="#000" stroke-width="1.2"/>
+          </g>
+
+          <!-- D-Pad -->
+          <g id="dpad">
+            <path class="btn-dpad btn-up" d="m 129.72835,68.16999 8.48241,8.46583 -16.96483,0 z" stroke="#000" stroke-width="1.2"/>
+            <path class="btn-dpad btn-down" d="m 128.3633,183.52698 8.48241,-8.46582 -16.96484,0 z" stroke="#000" stroke-width="1.2"/>
+            <path class="btn-dpad btn-right" d="m 186.72338,125.22059 -8.46582,8.48241 0,-16.96483 z" stroke="#000" stroke-width="1.2"/>
+            <path class="btn-dpad btn-left" d="m 71.455067,125.22059 8.465823,-8.48242 0,16.96483 z" stroke="#000" stroke-width="1.2"/>
+          </g>
+
+          <!-- Face Buttons (fixed spacing) -->
+          <g id="face-buttons" fill="#cccccc">
+            <circle class="btn-triangle" cx="472" cy="85" r="17" stroke="#000" stroke-width="1.2"/>
+            <circle class="btn-circle" cx="512" cy="125" r="17" stroke="#000" stroke-width="1.2"/>
+            <circle class="btn-cross" cx="472" cy="165" r="17" stroke="#000" stroke-width="1.2"/>
+            <circle class="btn-square" cx="432" cy="125" r="17" stroke="#000" stroke-width="1.2"/>
+          </g>
+
+          <!-- Analog Sticks -->
+          <g id="analog-sticks">
+            <circle class="btn-stick stick-left" cx="213" cy="206" r="32" fill="#cccccc" stroke="#000" stroke-width="1.2"/>
+            <circle class="btn-stick stick-right" cx="388" cy="206" r="32" fill="#cccccc" stroke="#000" stroke-width="1.2"/>
+          </g>
+
+          <!-- Triggers (L2/R2) -->
+          <g id="triggers" fill="#cccccc" stroke="#000" stroke-width="1.2">
+            <path class="btn-trigger l2"
+                  d="M95,22 Q110,12 135,16 L180,20 Q195,22 192,34 L100,34 Q90,34 95,22 Z"/>
+            <path class="btn-trigger r2"
+                  d="M505,22 Q490,12 465,16 L420,20 Q405,22 408,34 L500,34 Q510,34 505,22 Z"/>
+          </g>
+
+          <!-- Shoulders (L1/R1) -->
+          <g id="shoulders" fill="#cccccc" stroke="#000" stroke-width="1.2">
+            <path class="btn-shoulder l1"
+                  d="M95,36 Q110,28 135,30 L168,32 Q182,34 178,46 L100,46 Q90,46 95,36 Z"/>
+            <path class="btn-shoulder r1"
+                  d="M505,36 Q490,28 465,30 L432,32 Q418,34 422,46 L500,46 Q510,46 505,36 Z"/>
+          </g>
+
+          <!-- Center buttons -->
+          <g id="center-buttons" fill="#cccccc">
+            <rect class="btn-share" x="188" y="82" width="20" height="8" rx="2" stroke="#000" stroke-width="1.2"/>
+            <rect class="btn-options" x="392" y="82" width="20" height="8" rx="2" stroke="#000" stroke-width="1.2"/>
+            <circle class="btn-ps" cx="300" cy="203" r="14" stroke="#000" stroke-width="1.2"/>
+          </g>
+        </svg>
+
+        <div class="hint">
+          Controller visual is driven by <b>IN (TX)</b>: steer/throttle/turret/fire/estop.
+        </div>
+      </div>
+
+      <!-- Info Panels -->
+      <div class="info-grid">
+
+        <!-- NEW: Camera card -->
+        <div class="card">
+          <h2>Camera (from Raspberry Pi)</h2>
+
+          <div class="kv" style="margin-bottom:10px;">
+            <div>Stream</div><div id="cam_url_label">/stream.mjpg</div>
+            <div>Status</div><div id="cam_status">LOADING</div>
+          </div>
+
+          <!-- NEW: Calib controls -->
+          <div class="kv" style="margin-bottom:10px;">
+            <div>Calib</div>
+            <div id="calib_state">OFF</div>
+            <div>Mode</div>
+            <div id="calib_mode">-</div>
+          </div>
+
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+            <button id="btn_calib_toggle" class="btn">Calib: OFF</button>
+            <button id="btn_set_center" class="btn" disabled>Set Center</button>
+            <button id="btn_axis_x" class="btn" disabled>Axis X</button>
+            <button id="btn_axis_y" class="btn" disabled>Axis Y</button>
+            <button id="btn_save_calib" class="btn" disabled>Save</button>
+            <button id="btn_reload_calib" class="btn">Reload</button>
+          </div>
+
+          <div class="hint" id="calib_hint" style="margin-bottom:10px;">
+            Klik "Calib: OFF" untuk mulai.
+          </div>
+
+          <div class="video-stage" id="video_stage"
+     style="position:relative; width:100%; aspect-ratio:16/9; background: rgba(0,0,0,0.35);
+            border-radius: 10px; overflow:hidden;">
+
+            <!-- MJPEG stream -->
+            <img id="cam_img"
+                 alt="Camera stream"
+                 style="width:100%; height:100%; object-fit: cover;" />
+
+            <!-- Crosshair overlay (for calibration later) -->
+            <div id="crosshair"
+                 style="position:absolute; left:50%; top:50%; width:26px; height:26px;
+                        transform: translate(-50%, -50%); pointer-events:none;">
+              <div style="position:absolute; left:50%; top:0; width:2px; height:100%;
+                          transform:translateX(-50%); background: rgba(255,255,255,0.85);"></div>
+              <div style="position:absolute; top:50%; left:0; height:2px; width:100%;
+                          transform:translateY(-50%); background: rgba(255,255,255,0.85);"></div>
+              <div style="position:absolute; left:50%; top:50%; width:6px; height:6px;
+                          transform:translate(-50%,-50%); border:2px solid rgba(255,255,255,0.85);
+                          border-radius:50%;"></div>
+            </div>
+          </div>
+
+          <div class="hint" style="margin-top:10px;">
+            Stream is served by Flask on the Raspberry Pi. All clients view the same source.
+          </div>
+
+          
+        </div>
+
+        <div class="card">
+          <button id="btn_aim_controller" class="btn">Aim: Controller</button>
+          <button id="btn_aim_dashboard" class="btn">Aim: Dashboard</button>
+          <div class="pill" id="aim_state">AIM:-</div>
+          <h2>Status</h2>
+          <div class="kv">
+            <div>WS</div><div id="ws_state">-</div>
+            <div>IN (TX) age</div><div id="tx_age">-</div>
+            <div>OUT (TELEM) age</div><div id="telem_age">-</div>
+            <div>IN src</div><div id="tx_src">-</div>
+            <div>OUT src</div><div id="telem_src">-</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>IN (TX) — Command to UGV</h2>
+          <pre id="latest_tx">{}</pre>
+        </div>
+
+        <div class="card">
+          <h2>OUT (TELEM) — Feedback from UGV</h2>
+          <pre id="latest_telem">{}</pre>
+        </div>
+
+        <div class="card">
+          <h2>Live Log</h2>
+          <pre id="log"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./app/main.js"></script>
+
+</body>
+</html>

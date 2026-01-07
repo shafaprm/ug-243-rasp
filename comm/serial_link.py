@@ -1,3 +1,4 @@
+# comm/serial_link.py
 import threading
 import time
 from queue import Queue, Empty
@@ -5,7 +6,8 @@ from typing import Optional, Dict, Any
 
 import serial
 
-from messages.pack import dumps_line, loads_line
+from messages.pack import loads_line
+
 
 class SerialLink:
     """

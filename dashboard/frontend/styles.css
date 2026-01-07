@@ -1,0 +1,98 @@
+/* styles.css */
+:root {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  }
+  
+  body { margin: 0; background: #0b0f14; color: #e8eef6; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 18px; }
+  
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  h1 { font-size: 20px; margin: 0; font-weight: 650; }
+  
+  .pill { padding: 6px 10px; border-radius: 999px; font-size: 12px; border: 1px solid #223048; }
+  
+  .main-grid { display: grid; grid-template-columns: 600px 1fr; gap: 14px; }
+  
+  .controller-panel {
+    background: #121823;
+    border: 1px solid #223048;
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .panel-title { margin: 0 0 16px 0; font-size: 14px; opacity: .95; }
+  
+  .controller-svg { width: 100%; max-width: 600px; height: auto; }
+  
+  .hint {
+    margin-top: 14px;
+    font-size: 12px;
+    opacity: 0.75;
+    text-align: center;
+  }
+  
+  .info-grid { display: grid; gap: 14px; }
+  
+  .card {
+    background: #121823;
+    border: 1px solid #223048;
+    border-radius: 14px;
+    padding: 14px;
+  }
+  
+  .card h2 { margin: 0 0 10px 0; font-size: 14px; opacity: .9; }
+  
+  pre {
+    margin: 0;
+    padding: 10px;
+    background: #0b0f14;
+    border-radius: 10px;
+    overflow: auto;
+    max-height: 300px;
+    font-size: 12px;
+  }
+  
+  .kv {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 8px;
+    font-size: 13px;
+  }
+  
+  /* Active states (driven by app.js adding class "active") */
+  .btn-triangle.active { fill: #4dabf7 !important; }
+  .btn-circle.active { fill: #fa5252 !important; }
+  .btn-cross.active { fill: #51cf66 !important; }
+  .btn-square.active { fill: #ff6b6b !important; }
+  
+  .btn-dpad.active { fill: #ffd43b !important; }
+  .btn-shoulder.active { fill: #ff8787 !important; }
+  .btn-trigger.active { fill: #ff6b6b !important; }
+  .btn-stick.active { fill: #ff6b6b !important; }
+  
+  .btn-options.active,
+  .btn-share.active,
+  .btn-ps.active { fill: #4dabf7 !important; }
+
+  .btn{
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: inherit;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .btn:disabled{
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  
+  @media (max-width: 1200px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .controller-svg { max-width: 520px; }
+  }
+  
